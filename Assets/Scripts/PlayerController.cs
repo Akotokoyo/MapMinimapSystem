@@ -22,7 +22,7 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        //if (MapManager.isMapOpen) return;
+        if (MapManager.isMapOpen) return;
         Vector3 move = new Vector3(moveInput.x, 0, moveInput.y);
         controller.Move(move * moveSpeed * Time.deltaTime);
     }
