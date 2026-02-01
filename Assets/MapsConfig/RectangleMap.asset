@@ -16,5 +16,12 @@ MonoBehaviour:
   mapImage: {fileID: 21300000, guid: 667340b088496054e8cee44be8329a81, type: 3}
   worldSize: {x: 30, y: 90}
   worldCenter: {x: 0, y: 0}
-  targetMapWidthScaling: 800
-  markerSize: 32
+  targetMapHeightScaling: 800
+  poiList:
+  - Name: MERCHANT
+    Type: 0
+    Icon: {fileID: 21300000, guid: ddd732bcae73a0d4b89b59142e9ebccf, type: 3}
+    Color: {r: 1, g: 1, b: 1, a: 0}
+    WorldPosition: {x: 0, y: 1, z: -7}
+    IsVisible: 1
+    size: 32
