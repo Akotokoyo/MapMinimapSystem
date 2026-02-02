@@ -25,14 +25,23 @@ public class MapManager : MonoBehaviour
     [SerializeField] private float panSpeed = 500f;
     private Vector2 mapPanOffset = Vector2.zero;
 
+    private RectTransform canvasRect;
+    private RectTransform mapImageRect;
+
     void Awake()
     {
         controls = new PlayerInput();
         controls.PlayerMap.Map.performed += _ => ToggleMap();
 
+        if (mapCanvas != null)
+        {
+            canvasRect = mapCanvas.GetComponent<RectTransform>();
+        }
+
         if (mapImage != null)
         {
             mapImage.SetActive(false);
+            mapImageRect = mapImage.GetComponent<RectTransform>();
         }
 
         if (currentMapConfig != null)
@@ -106,14 +115,30 @@ public class MapManager : MonoBehaviour
         }
 
         ClearPOIMarkers();
-        foreach (var poi in config.poiList)
+        int poiCount = config.poiList?.Count ?? 0;
+        if (poiCount > 0)
         {
-            if (!poi.IsVisible) continue;
-            RectTransform marker = Instantiate(poiMarkerPrefab, mapImage.transform).GetComponent<RectTransform>();
-            marker.anchoredPosition = config.WorldToMapPosition(poi.WorldPosition);
-            marker.sizeDelta = new Vector2(poi.size, poi.size);
-            marker.GetComponent<Image>().sprite = poi.Icon;
-            poiMarkers.Add(marker);
+            poiMarkers.Capacity = poiCount;
+
+            foreach (var poi in config.poiList)
+            {
+                if (!poi.IsVisible) continue;
+
+                GameObject markerObj = Instantiate(poiMarkerPrefab, mapImage.transform);
+                RectTransform marker = markerObj.GetComponent<RectTransform>();
+
+                // Performance: Calculate position once for static POIs
+                marker.anchoredPosition = config.WorldToMapPosition(poi.WorldPosition);
+                marker.sizeDelta = new Vector2(poi.size, poi.size);
+
+                Image markerImage = markerObj.GetComponent<Image>();
+                if (markerImage != null)
+                {
+                    markerImage.sprite = poi.Icon;
+                }
+
+                poiMarkers.Add(marker);
+            }
         }
 
         currentMapConfig = config;
@@ -125,7 +150,7 @@ public class MapManager : MonoBehaviour
 
         if (mapImage != null)
         {
-            mapImage.GetComponent<RectTransform>().sizeDelta = config.MapSize;
+            mapImageRect.sizeDelta = config.MapSize;
         }
 
         ApplyCurrentZoom();
@@ -172,7 +197,7 @@ public class MapManager : MonoBehaviour
 
         currentZoomIndex = Mathf.Clamp(currentZoomIndex, 0, zoomSteps.Length - 1);
         float zoom = zoomSteps[currentZoomIndex];
-        mapImage.GetComponent<RectTransform>().localScale = Vector3.one * zoom;
+        mapImageRect.localScale = new Vector3(zoom, zoom, 1f);
 
         ApplyPanning();
     }
@@ -183,7 +208,7 @@ public class MapManager : MonoBehaviour
 
         Vector2 mapSize = currentMapConfig.MapSize * zoomSteps[currentZoomIndex];
 
-        RectTransform canvasRect = mapCanvas.GetComponent<RectTransform>();
+        
         Vector2 viewportSize = canvasRect.rect.size;
 
         // Calculate max offset based on current zoom - allow panning when map is larger than viewport
@@ -193,7 +218,7 @@ public class MapManager : MonoBehaviour
         mapPanOffset.x = Mathf.Clamp(mapPanOffset.x, -maxX, maxX);
         mapPanOffset.y = Mathf.Clamp(mapPanOffset.y, -maxY, maxY);
 
-        mapImage.GetComponent<RectTransform>().anchoredPosition = mapPanOffset;
+        mapImageRect.anchoredPosition = mapPanOffset;
     }
 
     void CenterMapOnPlayer()
@@ -215,7 +240,7 @@ public class MapManager : MonoBehaviour
         }
 
         poiContainer = new GameObject("POI Markers");
-        poiContainer.transform.SetParent(mapImage.GetComponent<RectTransform>(), false);
+        poiContainer.transform.SetParent(mapImageRect, false);
         RectTransform rt = poiContainer.AddComponent<RectTransform>();
         rt.anchorMin = Vector2.zero;
         rt.anchorMax = Vector2.one;

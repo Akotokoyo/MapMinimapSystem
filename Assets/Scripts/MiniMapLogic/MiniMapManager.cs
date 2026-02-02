@@ -24,6 +24,11 @@ public class MinimapManager : MonoBehaviour
 
     private Vector2 mapWorldSize;
     private List<MiniMapPoiMarker> poiMarkers = new List<MiniMapPoiMarker>();
+    private Vector2 mapScaleSize;
+    private float mapScaleCached;
+
+    private float halfMinimapWidth;
+    private float halfMinimapHeight;
 
     void Start()
     {
@@ -73,6 +78,14 @@ public class MinimapManager : MonoBehaviour
         CreatePOIMarkers();
 
         Debug.Log($"Minimappa caricata: {mapConfig.mapName}, mostra {mapWorldSize.x}x{mapWorldSize.y} unità di mondo");
+    }
+
+    void RecalculateMapScale()
+    {
+        mapScaleSize = mapConfig.MapSize;
+        mapScaleCached = minimapSize.x / (mapScaleSize.x * zoomLevel);
+        halfMinimapWidth = minimapSize.x * 0.5f;
+        halfMinimapHeight = minimapSize.y * 0.5f;
     }
 
     void ClearPOIMarkers()
@@ -135,6 +148,7 @@ public class MinimapManager : MonoBehaviour
         if (playerTransform == null || mapConfig == null)
             return;
 
+        RecalculateMapScale();
         UpdateMinimapPosition();
         UpdatePOIMarkers();
     }
@@ -145,19 +159,16 @@ public class MinimapManager : MonoBehaviour
 
         Vector2 playerPosOnMap = mapConfig.WorldToMapPosition(playerWorldPos);
 
-        float mapScale = minimapSize.x / (mapConfig.MapSize.x * zoomLevel);
-        mapContent.localScale = Vector3.one * mapScale;
+        mapContent.localScale = Vector3.one * mapScaleCached;
 
-        Vector2 playerPosScaled = playerPosOnMap * mapScale;
-        Vector2 offset = -playerPosScaled;
+        float offsetX = -playerPosOnMap.x * mapScaleCached;
+        float offsetY = -playerPosOnMap.y * mapScaleCached;
 
-        mapContent.anchoredPosition = offset;
+        mapContent.anchoredPosition = new Vector2(offsetX, offsetY);
     }
 
     void UpdatePOIMarkers()
     {
-        float mapScale = minimapSize.x / (mapConfig.MapSize.x * zoomLevel);
-
         Vector2 playerPosOnMap = mapConfig.WorldToMapPosition(playerTransform.position);
 
         foreach (var marker in poiMarkers)
@@ -167,13 +178,14 @@ public class MinimapManager : MonoBehaviour
             Vector2 poiPosOnMap = mapConfig.WorldToMapPosition(marker.worldPosition);
 
             // IMPORTANT: Calculate the player relative position
-            Vector2 relativePosOnMap = poiPosOnMap - playerPosOnMap;
-            Vector2 poiPosScaled = relativePosOnMap * mapScale;
+            float relativePosX = (poiPosOnMap.x - playerPosOnMap.x) * mapScaleCached;
+            float relativePosY = (poiPosOnMap.y - playerPosOnMap.y) * mapScaleCached;
 
-            marker.markerRect.anchoredPosition = poiPosScaled;
+            marker.markerRect.anchoredPosition = new Vector2(relativePosX, relativePosY);
 
-            bool isVisible = Mathf.Abs(poiPosScaled.x) <= minimapSize.x * 0.5f &&
-                             Mathf.Abs(poiPosScaled.y) <= minimapSize.y * 0.5f;
+            bool isVisible = relativePosX >= -halfMinimapWidth && relativePosX <= halfMinimapWidth &&
+                             relativePosY >= -halfMinimapHeight && relativePosY <= halfMinimapHeight;
+
             marker.markerObject.SetActive(isVisible);
         }
     }

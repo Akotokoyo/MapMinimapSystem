@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class MiniMapPoiMarker
+public struct MiniMapPoiMarker
 {
     public GameObject markerObject;
     public RectTransform markerRect;
